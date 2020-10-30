@@ -1,0 +1,129 @@
+---
+title: "elections_covid"
+author: "Gabe Cederberg"
+date: "10/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(RCurl)
+library(zoo)
+library(ggrepel)
+
+
+```
+
+```{r, echo = FALSE}
+# load data
+
+states_text <- getURL("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")
+states <- read_csv(states_text) 
+
+pop_text <- getURL("https://raw.githubusercontent.com/COVID19Tracking/associated-data/master/us_census_data/us_census_2018_population_estimates_states.csv")
+pop <- read_csv(pop_text) %>% 
+  select(state = "state_name", 
+         population, pop_density)
+
+a <- states %>% left_join(pop, by ="state")
+
+b <- a %>% 
+ # filter(state == "New York") %>% 
+  group_by(state) %>% 
+  mutate(new_cases = cases - lag(cases)) %>% 
+ # group_by(date) %>% 
+#  summarize()
+  mutate(cases_7day = rollmean(new_cases, k = 7, fill = NA),
+         new_per_100K = (new_cases / population) * 100000, 
+         seven_day_per_100K = (cases_7day / population) * 100000)
+
+b %>% 
+  filter(state == "New York") %>% 
+  ggplot() +
+  geom_col(aes(date, new_cases)) +
+  geom_line(aes(date, cases_7day))
+```
+
+```{r}
+
+b %>% 
+  filter(state == "Minnesota" | state == "Wisconsin") %>% 
+  ggplot() +
+  geom_point(aes(date, new_cases, color = state)) +
+  geom_line(aes(date, cases_7day,  color = state))
+
+b %>% 
+  filter(state == "Minnesota" | state == "Wisconsin") %>% 
+  ggplot() +
+  geom_point(aes(date, new_per_100K, color = state)) +
+  geom_line(aes(date, seven_day_per_100K,  color = state))
+
+b %>% 
+  filter(state == "California") %>% 
+  ggplot() +
+  geom_point(aes(date, new_cases, color = state)) +
+  geom_line(aes(date, cases_7day,  color = state))
+```
+
+```{r}
+county_text <- getURL("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
+county <- read_csv(county_text) 
+
+pop_text <- getURL("https://raw.githubusercontent.com/COVID19Tracking/associated-data/master/us_census_data/us_census_2018_population_estimates_counties.csv")
+pop_county <- read_csv(pop_text) %>% 
+  select(state = "state_name", 
+         county,
+         population, pop_density)
+
+partisanship <- read_csv("https://raw.githubusercontent.com/MEDSL/2018-elections-unoffical/master/election-context-2018.csv",
+                         col_types = cols(
+                           fips = col_character())) %>% 
+        mutate(pct_dem = clinton16/(trump16 + clinton16)) %>% 
+        select(state, county, pct_dem, rural_pct, 
+               median_hh_inc, total_population, 
+               age65andolder_pct, lesshs_pct)
+
+x <- county %>% left_join(pop_county, by = c("state", "county"))
+
+y <- x %>% left_join(partisanship, by = c("state", "county")) %>% 
+  group_by(state, county) %>% 
+  mutate(new_cases = cases - lag(cases)) %>% 
+  mutate(cases_7day = rollmean(new_cases, k = 7, fill = NA),
+         new_per_100K = (new_cases / population) * 100000, 
+         seven_day_per_100K = (cases_7day / population) * 100000)
+
+z <- y %>% filter(state == "Minnesota" & date == "2020-10-26")
+
+z
+
+model_1 <- lm(seven_day_per_100K ~ pct_dem + 
+                age65andolder_pct + 
+         #       lesshs_pct + 
+                median_hh_inc  
+             #   pop_density
+              , data = z)
+summary(model_1)
+
+z %>% 
+  ggplot(aes(pct_dem, seven_day_per_100K, label = county)) +
+  geom_point() +
+#  geom_label_repel(hjust=0, vjust=0, size = 2) +
+    geom_smooth(method = "lm") +
+
+#  scale_y_discrete(breaks = seq(min(c$percent_of_ballots_that_are_usually_vbm), max(c$percent_of_ballots_that_are_usually_vbm), by = 0.05)) +
+  theme_classic() +
+  labs(
+    title = "% VBM by when states start counting",
+  #  subtitle = "Cases Rapidly Increasing After Mid-March",
+       y = "% of ballots that are usually VBM",
+       x = "When ballot counting starts",
+    caption = "Data from EAC and NCSL") +
+    theme(legend.title = element_blank())
+
+partisanship
+
+
+```
+
