@@ -67,7 +67,7 @@ b %>%
   geom_line(aes(date, cases_7day,  color = state))
 ```
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 county_text <- getURL("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
 county <- read_csv(county_text) 
 
@@ -108,22 +108,21 @@ summary(model_1)
 
 z %>% 
   ggplot(aes(pct_dem, seven_day_per_100K, label = county)) +
-  geom_point() +
-#  geom_label_repel(hjust=0, vjust=0, size = 2) +
+  geom_point(shape = 5) +
+  geom_label_repel(hjust=0.5, vjust=0.5, size = 2) +
     geom_smooth(method = "lm") +
 
 #  scale_y_discrete(breaks = seq(min(c$percent_of_ballots_that_are_usually_vbm), max(c$percent_of_ballots_that_are_usually_vbm), by = 0.05)) +
   theme_classic() +
   labs(
-    title = "% VBM by when states start counting",
-  #  subtitle = "Cases Rapidly Increasing After Mid-March",
-       y = "% of ballots that are usually VBM",
-       x = "When ballot counting starts",
-    caption = "Data from EAC and NCSL") +
+    title = "Late-October COVID-19 Transmission in Minnesota by County",
+    subtitle = "Counties that lean Republican tend to have higher community transmission rates",
+       y = "7-Day Average of Daily New Cases per 100K People",
+       x = "Hillary's 2016 Vote Share",
+    caption = "Data from NYT, KFF, MIT") +
     theme(legend.title = element_blank())
 
-partisanship
-
+ggsave("MNpartisanspread.jpg", plot = last_plot(), width = 9, height = 6)
 
 ```
 
