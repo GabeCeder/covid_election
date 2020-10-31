@@ -122,7 +122,69 @@ z %>%
     caption = "Data from NYT, KFF, MIT") +
     theme(legend.title = element_blank())
 
-ggsave("MNpartisanspread.jpg", plot = last_plot(), width = 9, height = 6)
+# ggsave("MNpartisanspread.jpg", plot = last_plot(), width = 9, height = 6)
 
 ```
+
+```{r}
+m <- y %>% filter(state == "Wisconsin" & date == "2020-10-26")
+
+m
+
+model_2 <- lm(seven_day_per_100K ~ pct_dem + 
+                age65andolder_pct + 
+                lesshs_pct + 
+                median_hh_inc  
+             #   pop_density
+              , data = m)
+summary(model_2)
+
+m %>% 
+  ggplot(aes(pct_dem, seven_day_per_100K, label = county)) +
+  geom_point(shape = 5) +
+  geom_label_repel(hjust=0.5, vjust=0.5, size = 2) +
+    geom_smooth(method = "lm") +
+
+#  scale_y_discrete(breaks = seq(min(c$percent_of_ballots_that_are_usually_vbm), max(c$percent_of_ballots_that_are_usually_vbm), by = 0.05)) +
+  theme_classic() +
+  labs(
+    title = "Late-October COVID-19 Transmission in Wisconsin by County",
+    subtitle = "Counties that lean Republican tend to have higher community transmission rates",
+       y = "7-Day Average of Daily New Cases per 100K People",
+       x = "Hillary's 2016 Vote Share",
+    caption = "Data from NYT, KFF, MIT") +
+    theme(legend.title = element_blank())
+```
+
+```{r}
+f <- y %>% filter(date == "2020-10-26"
+                   & state %in% c("North Dakota", "South Dakota"))
+
+f %>% arrange(desc(seven_day_per_100K))
+ 
+model_3 <- lm(seven_day_per_100K ~ pct_dem + 
+                age65andolder_pct + 
+                lesshs_pct + 
+                median_hh_inc +
+                pop_density
+              , data = f)
+summary(model_3)
+
+ f %>% 
+  ggplot(aes(pct_dem, seven_day_per_100K, label = county)) +
+  geom_point(shape = 5) +
+ # geom_label_repel(hjust=0.5, vjust=0.5, size = 2) +
+    geom_smooth(method = "lm") +
+
+#  scale_y_discrete(breaks = seq(min(c$percent_of_ballots_that_are_usually_vbm), max(c$percent_of_ballots_that_are_usually_vbm), by = 0.05)) +
+  theme_classic() +
+  labs(
+    title = "Late-October COVID-19 Transmission in Wisconsin by County",
+    subtitle = "Counties that lean Republican tend to have higher community transmission rates",
+       y = "7-Day Average of Daily New Cases per 100K People",
+       x = "Hillary's 2016 Vote Share",
+    caption = "Data from NYT, KFF, MIT") +
+    theme(legend.title = element_blank())
+```
+
 
